@@ -37,6 +37,25 @@ One file, standard library only, Python 3.10 or newer.
 
 ## Use
 
+There is a corpus built in, so there is something to run before you have
+written any cases:
+
+```console
+$ cmpcli --list-builtin
+  basename   4 cases
+  cut        10 cases
+  date       19 cases
+  ...
+$ cmpcli --reference /usr/bin/date --candidate ./date --builtin date --c-locale
+```
+
+148 cases over 16 utilities, chosen for the places two implementations
+actually drift -- formatting, flag parsing, boundary values, the exact text of
+a diagnostic -- rather than for coverage of the happy path, which everyone
+gets right.
+
+Your own cases work the same way:
+
 ```console
 $ cmpcli --reference gnu-sort --candidate ./sort --cases sort.json
 $ cmpcli --reference /usr/bin/wc --candidate ./wc --arg "-l" --arg "-c" --stdin "a b c"
@@ -79,11 +98,25 @@ off when you want the bytes compared exactly.
 
 | flag | |
 | --- | --- |
+| `--builtin UTILITY` | use the packaged cases |
+| `--list-builtin` | name the packaged utilities |
 | `--arg "..."` | one invocation inline, repeatable |
+| `--c-locale` | run both under `LC_ALL=C LANG=C TZ=UTC` |
+| `--env KEY=VALUE` | set a variable for both, repeatable |
 | `--stdin TEXT` | stdin for the inline invocations |
 | `--ignore-stderr` | compare stdout and exit status only |
 | `--timeout S` | per run, default 10s; a timeout is reported, never hung on |
 | `--quiet` | summary only |
+
+## Set the locale
+
+Locale decides how GNU tools quote (`'0'` or `‘0’`) and how they
+collate, so leaving it to whoever runs the comparison makes the result depend
+on their shell. Running the built-in `sort` and `seq` cases without
+`--c-locale` reports two differences that disappear with it -- neither of them
+anything to do with the programs.
+
+`--c-locale` is the usual answer; `--env` covers the rest.
 
 ## Reading the output
 

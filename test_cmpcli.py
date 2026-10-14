@@ -171,3 +171,58 @@ def test_cli_runs_as_a_script(tmp_path):
     )
     assert done.returncode == 0, done.stderr
     assert "1 case(s), 0 differing" in done.stdout
+
+
+class TestBuiltinCorpus:
+    def test_every_utility_has_cases(self):
+        assert cmpcli.CORPUS
+        for name, cases in cmpcli.CORPUS.items():
+            assert cases, name
+            for args, stdin, label in cases:
+                assert isinstance(args, list) and all(isinstance(a, str) for a in args), name
+                assert isinstance(stdin, str), name
+                # Labels are fragments that read after "###", not sentences.
+                assert label, name
+                assert not label.endswith("."), f"{name}: {label!r}"
+
+    def test_case_names_are_unique_within_a_utility(self):
+        for name, cases in cmpcli.CORPUS.items():
+            labels = [label for _, _, label in cases]
+            assert len(labels) == len(set(labels)), name
+
+    def test_builtin_cases_become_cases(self):
+        cases = cmpcli.builtin_cases("date")
+        assert cases and all(isinstance(c, cmpcli.Case) for c in cases)
+        assert cases[0].label
+
+    def test_cli_lists_the_corpus(self, capsys):
+        assert cmpcli.main(["--list-builtin"]) == 0
+        out = capsys.readouterr().out
+        assert "date" in out and "cases" in out
+
+    def test_cli_rejects_an_unknown_utility(self):
+        with pytest.raises(SystemExit):
+            cmpcli.main(["--reference", "x", "--candidate", "y", "--builtin", "nosuchtool"])
+
+
+class TestEnvironment:
+    def test_env_reaches_both_commands(self, tmp_path):
+        show = script(tmp_path, "show", "import os,sys; print(os.environ.get('MARKER','unset'))")
+        other = script(tmp_path, "other", "import os,sys; print(os.environ.get('MARKER','unset'))")
+        differences = cmpcli.compare(
+            show, other, [cmpcli.Case([])], normaliser(), 10.0, False, {"MARKER": "set"}
+        )
+        assert differences == []
+
+    def test_c_locale_shorthand(self, tmp_path, capsys):
+        show = script(tmp_path, "locale", "import os; print(os.environ.get('LC_ALL','unset'))")
+        assert cmpcli.main(
+            ["--reference", show, "--candidate", show, "--arg", "", "--c-locale", "--quiet"]
+        ) == 0
+
+    def test_malformed_env_is_rejected(self, tmp_path):
+        show = script(tmp_path, "s", "pass")
+        with pytest.raises(SystemExit):
+            cmpcli.main(
+                ["--reference", show, "--candidate", show, "--arg", "", "--env", "NOEQUALS"]
+            )
