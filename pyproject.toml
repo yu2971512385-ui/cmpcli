@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmpcli"
+version = "0.1.0"
+description = "Run two commands over the same inputs and report where they disagree"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "yu2971512385-ui" }]
+keywords = ["testing", "differential", "cli", "compatibility", "ci"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://github.com/yu2971512385-ui/cmpcli"
+Issues = "https://github.com/yu2971512385-ui/cmpcli/issues"
+
+[project.scripts]
+cmpcli = "cmpcli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+py-modules = ["cmpcli"]
+
+[tool.pytest.ini_options]
+testpaths = ["test_cmpcli.py"]
